@@ -143,11 +143,11 @@ var board = (function () {
 	
 	var safeNewController = function(controlSettings){
 			emptyAddControllerInputs();		
-			scaleUpButton.removeClass('show-controller').addClass('hide-controller');
-			scaleDownButton.removeClass('show-controller').addClass('hide-controller');
+			hideElement(scaleUpButton);
+			hideElement(scaleDownButton);
 			panelMenuButton.removeClass('ui-state-disabled');
 			$('#content-' + controlSettings.name).removeClass('edit-enable');
-			moveMsg.removeClass('show-controller').addClass('hide-controller');
+			hideElement(moveMsg);
 					
 			$.pep.toggleAll(false);
 			/*
@@ -188,6 +188,10 @@ var board = (function () {
 		element.addClass('show-controller').removeClass('hide-controller');
 	};
 	
+	var hideElement = function(element){
+		element.removeClass('show-controller').addClass('hide-controller');
+	};
+		
 	var prepareControllersToBeEdit = function(){
 		$('#control-board > a, #control-board > div').each(function(){		
 			var contName = $(this).attr('id');
@@ -252,7 +256,7 @@ var board = (function () {
 			
 			saveButton.on('click',function(event){
 				event.preventDefault();
-				saveButton.removeClass('show-controller').addClass('hide-controller');
+				hideElement(saveButton);
 				if(editMode == false){
 					var controlSettings = {
 						type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
