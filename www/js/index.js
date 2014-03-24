@@ -33,16 +33,36 @@ var app = {
 		
     }
 };
+// Header Menu functionality
 
+var board = (function () {
+	var dashboard = $('#control-board'),
+		controllerNameText = $('#controller-name'),
+		controllerPathText = $('#controller-path'),
+		controlNameToAdd = $('#controller-name').val();
+	var privateInit = function(){
+		dashboard.height($(window).height()-77+'px');
+		dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
+		dbShell.transaction(setupTable,dbErrorHandler,getEntries);	
+	}
+	return{
+		init: privateInit,
+	};
+})();
+
+$(function() {
+	board.init();
+
+});
 $(document).ready(function(){
 	$('#control-board').height($(window).height()-77+'px');
-	
+	/*
 	dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
 	console.log('basede datos creda');
     console.log("db was opened");
     dbShell.transaction(setupTable,dbErrorHandler,getEntries);
     console.log("ran setup");
-	
+	*/
 	
 	var controlNameToAdd;
 	var controllerNameText = $('#controller-name');
@@ -139,11 +159,12 @@ $(document).ready(function(){
 			$('#button-panel').removeClass('ui-state-disabled');
 			$('#content-' + controlNameToAdd).removeClass('edit-enable');
 			$('#move-msg').removeClass('show-controller').addClass('hide-controller');
-			
+			/*
 			// Safe new added controller data
 			saveController(controlSettings,function() {
 				console.log('guardado exitoso');
 			});
+			*/
 		}
 		else{	// edit mode
 			editMode = false;
