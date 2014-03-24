@@ -33,25 +33,97 @@ var app = {
 		
     }
 };
-// Header Menu functionality
 
+// ControllerBoard functionality
 var board = (function () {
+
 	var dashboard = $('#control-board'),
 		controllerNameText = $('#controller-name'),
 		controllerPathText = $('#controller-path'),
-		controlNameToAdd = $('#controller-name').val();
+		controlNameToAdd = $('#controller-name'),
+		controlPathToAdd = $('#controller-path');
+		
 	var privateInit = function(){
-		dashboard.height($(window).height()-77+'px');
-		dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
-		dbShell.transaction(setupTable,dbErrorHandler,getEntries);	
-	}
-	return{
-		init: privateInit,
+			dashboard.height($(window).height()-77+'px');
+			dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
+			dbShell.transaction(setupTable,dbErrorHandler,getEntries);	
+		};
+	
+	var htmlToAddByControllerType = function(controllerType, controlName, controlPath){
+			
+			switch(controllerType){
+				case "Button":
+					controlHtml = '<a id="content-' + controlName + '" data-path="' + controlPath + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlName+'</a>';
+					$('#control-board').append(controlHtml);
+					break;
+				case "Flip switch":
+					controlHtml = '<div id="content-'+controlName + '" class="controller-content arduino-action" data-path="'+ controlPath +'"> <select id="flip-' + controlName + '" name="flip-'+ controlName +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlName+'</div></div>';
+					$('#control-board').append(controlHtml);
+					$('#flip-' + controlName).slider();
+					$('#content-' + controlName).addClass('edit-enable');
+					break;
+				default:
+					controlHtml = "<div>No control</div>";
+			}	
+		};
+
+	var addNewController = function(){
+	
+		var controllerType = $('input:radio[name=radio-choice-v-6]:checked').parent().find('.input-desc').html(),
+			controlName = controlNameToAdd.val(),
+			controlPath = controlPathToAdd.val();
+		htmlToAddByControllerType(controllerType, controlName, controlPath);
 	};
+	
+	var editController = function(){
+			var editObjet = $('#control-board').find('.edit-enable');
+			editObjet.attr('id','content-'+controlNameToAdd);
+			editObjet.attr('data-path', $('#controller-path').val());
+			var titleController = $('#control-board').find('.edit-enable .text-center');
+			if(titleController != null){	//esto es para cambiar el titulo si es un flip switch
+				titleController.html(controlNameToAdd);
+			}
+			if(editObjet[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
+				editObjet.html(controlNameToAdd);
+			}
+			editObjet.removeClass('edit-enable');
+			editObjet.addClass('controller-editing');
+		};
+	
+	var inputValidatation = function (inputVal,type){
+		var result = true;
+		switch(type){
+			case "empty":
+				if(inputVal == ""){
+					result = false;
+				}
+			break;
+			case "nameExist":
+				$('#control-board > a, #control-board > div').each(function(){
+					if($(this).attr('id') == "content-"+inputVal.val()){
+						result = false;
+					}
+				});
+			break;
+			default:
+				result = true;
+			}
+		return result;
+	}
+	
+	return{
+	
+		init: privateInit,
+		
+		addController : function(){
+		
+		},
+	};
+	
 })();
 
 $(function() {
-	board.init();
+	//board.init();
 
 });
 $(document).ready(function(){
@@ -79,18 +151,18 @@ $(document).ready(function(){
 				if(editMode == false){
 					
 					switch(controlToAdd){
-					case "Button":
-						controlHtml = '<a id="content-' + controlNameToAdd + '" data-path="' + $('#controller-path').val() + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlNameToAdd+'</a>';
-						$('#control-board').append(controlHtml);
-					break;
-					case "Flip switch":
-						controlHtml = '<div id="content-'+controlNameToAdd + '" class="controller-content arduino-action" data-path="'+$('#controller-path').val()+'"> <select id="flip-' + controlNameToAdd + '" name="flip-'+ controlNameToAdd +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlNameToAdd+'</div></div>';
-						$('#control-board').append(controlHtml);
-						$('#flip-' + controlNameToAdd).slider();
-						$('#content-' + controlNameToAdd).addClass('edit-enable');
-					break;
-					default:
-					  controlHtml = "<div>No control</div>";
+						case "Button":
+							controlHtml = '<a id="content-' + controlNameToAdd + '" data-path="' + $('#controller-path').val() + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlNameToAdd+'</a>';
+							$('#control-board').append(controlHtml);
+						break;
+						case "Flip switch":
+							controlHtml = '<div id="content-'+controlNameToAdd + '" class="controller-content arduino-action" data-path="'+$('#controller-path').val()+'"> <select id="flip-' + controlNameToAdd + '" name="flip-'+ controlNameToAdd +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlNameToAdd+'</div></div>';
+							$('#control-board').append(controlHtml);
+							$('#flip-' + controlNameToAdd).slider();
+							$('#content-' + controlNameToAdd).addClass('edit-enable');
+						break;
+						default:
+							controlHtml = "<div>No control</div>";
 					}
 					$('#content-'+controlNameToAdd).pep({
 						useCSSTranslation: false,
