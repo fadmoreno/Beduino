@@ -100,7 +100,6 @@ var board = (function () {
 	
 	var emptyInputMsg = function(inputsArray){
 			inputsArray.forEach(function($this){
-				//$this = $(this);
 				if($this.val() == ""){
 					$this.addClass('empty').attr('placeholder','This field is required ');
 				}
@@ -133,6 +132,29 @@ var board = (function () {
 			}
 		}
 		$('#content-'+controlName).css('transform', 'scale('+newScale+')');
+	};
+	
+	var emptyAddControllerInputs = function(){
+		controlNameToAdd.val("");
+		controlPathToAdd.val("");
+	};
+	
+	var safeNewController = function(controlSettings){
+			emptyAddControllerInputs();
+			saveButton.removeClass('show-controller').addClass('hide-controller');
+			scaleUpButton.removeClass('show-controller').addClass('hide-controller');
+			scaleDownButton.removeClass('show-controller').addClass('hide-controller');
+			panelMenuButton.removeClass('ui-state-disabled');
+			$('#content-' + controlSettings.name).removeClass('edit-enable');
+			moveMsg.removeClass('show-controller').addClass('hide-controller');
+					
+			$.pep.toggleAll(false);
+			/*
+			// Safe new added controller data
+			saveController(controlSettings,function() {
+			console.log('guardado exitoso');
+			});
+			*/		
 	};
 	
 	return{
@@ -178,6 +200,53 @@ var board = (function () {
 				controlName = controlNameToAdd.val();
 				scaleController(controlName,"down");
 			});
+			
+			saveButton.on('click',function(event){
+				event.preventDefault();
+				if(editMode == false){
+					var controlSettings = {
+						type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
+						name: controlNameToAdd.val(),
+						path: controlPathToAdd.val(),
+						css: $('#content-'+controlNameToAdd.val()).attr('style'),
+						id: ""
+					};
+					safeNewController(controlSettings);	
+				}
+				else{
+					editMode = false;
+					saveButton.removeClass('show-controller').addClass('hide-controller');
+					$('#button-panel').removeClass('ui-state-disabled');
+					$('.open-delete-popup').remove();
+
+					$('#control-board > a, #control-board > div').each(function(){	
+						var contName = $(this).attr('id');
+					
+						if(contName != undefined || contName != null){
+							contName = contName.split("-");
+							if(contName[0] == "content"){
+								if($(this).hasClass('controller-editing')){
+									var controllerId = getContollerId($(this).attr('id'),function(result) {
+										console.log('ID success');
+										var controlSettings = {
+											type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
+											name: $('#controller-name').val(),
+											path: $('#controller-path').val(),
+											css: $('#content-'+controlNameToAdd).attr('style'),
+											id: controllerId
+										};
+									});
+									$(this).removeClass('controller-editing');
+								}
+								
+								$(this).removeAttr('data-rel').removeAttr('data-rel').removeAttr('data-rel').removeAttr('href');
+								$(this).removeClass('edit-enable');
+								$(this).next().remove();
+							}
+						}
+					});
+				}
+			});
 		},
 	};
 	
@@ -210,72 +279,7 @@ $(document).ready(function(){
 	controllerPathText.focusin(function() {
 		controllerPathText.removeClass('empty');
 	});
-	
-	$('#save-controller').on('click',function(event){
-		event.preventDefault();
-		if(editMode == false){
-			var controlSettings = {
-				type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
-				name: $('#controller-name').val(),
-				path: $('#controller-path').val(),
-				css: $('#content-'+controlNameToAdd).attr('style'),
-				id: ""
-			};
-			$.pep.toggleAll(false);
-			$('#save-controller').removeClass('show-controller').addClass('hide-controller');
-			$('#scale-up').removeClass('show-controller').addClass('hide-controller');
-			$('#scale-down').removeClass('show-controller').addClass('hide-controller');
-			$('#controller-name').val("");
-			$('#controller-path').val("");
-			$('#button-panel').removeClass('ui-state-disabled');
-			$('#content-' + controlNameToAdd).removeClass('edit-enable');
-			$('#move-msg').removeClass('show-controller').addClass('hide-controller');
-			/*
-			// Safe new added controller data
-			saveController(controlSettings,function() {
-				console.log('guardado exitoso');
-			});
-			*/
-		}
-		else{	// edit mode
-			editMode = false;
-			$('#save-controller').removeClass('show-controller').addClass('hide-controller');
-			$('#button-panel').removeClass('ui-state-disabled');
-			$('.open-delete-popup').remove();
-			
-			
-			
-			$('#control-board > a, #control-board > div').each(function(){	
-				var contName = $(this).attr('id');
-			
-				if(contName != undefined || contName != null){
-					contName = contName.split("-");
-					if(contName[0] == "content"){
-						if($(this).hasClass('controller-editing')){
-							var controllerId = getContollerId($(this).attr('id'),function(result) {
-								console.log('ID success');
-								var controlSettings = {
-									type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
-									name: $('#controller-name').val(),
-									path: $('#controller-path').val(),
-									css: $('#content-'+controlNameToAdd).attr('style'),
-									id: controllerId
-								};
-							});
-							$(this).removeClass('controller-editing');
-						}
-						
-						$(this).removeAttr('data-rel').removeAttr('data-rel').removeAttr('data-rel').removeAttr('href');
-						$(this).removeClass('edit-enable');
-						$(this).next().remove();
-					}
-				}
-			});
-			
-		}					
-	});
-	
-	
+		
 	
 	$('#control-board').on('click','.arduino-action',function(event){
 		if(editMode == false){
