@@ -13,10 +13,15 @@ var board = (function () {
 		panelMenuButton = $('#button-panel'),
 		moveMsg = $('#move-msg');
 		
+	var editMode;
+	
 	var privateInit = function(){
+			editMode = false;
 			dashboard.height($(window).height()-77+'px');
+			/*
 			dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
 			dbShell.transaction(setupTable,dbErrorHandler,getEntries);	
+			*/
 		};
 	
 	var htmlToAddByControllerType = function(controllerType, controlName, controlPath){
@@ -72,7 +77,7 @@ var board = (function () {
 			controllerToEdit.addClass('controller-editing');
 		};
 	
-	var inputValidatation = function (inputVal,type){
+	var inputValidation = function (inputVal,type){
 		var result = true;
 		switch(type){
 			case "empty":
@@ -82,7 +87,7 @@ var board = (function () {
 			break;
 			case "nameExist":
 				$('#control-board > a, #control-board > div').each(function(){
-					if($(this).attr('id') == "content-"+inputVal.val()){
+					if($(this).attr('id') == "content-"+inputVal){
 						result = false;
 					}
 				});
@@ -94,17 +99,41 @@ var board = (function () {
 	};
 	
 	var emptyInputMsg = function(inputsArray){
-			inputsArray.each(function(){
-				$this = $(this);
+			inputsArray.forEach(function($this){
+				//$this = $(this);
 				if($this.val() == ""){
 					$this.addClass('empty').attr('placeholder','This field is required ');
 				}
 			});
 		};
 	
-	var inputNameExistMsg = function(controlName){
-			controlName.addClass('empty').val("").attr('placeholder','This name already exist');
+	var inputNameExistMsg = function(controlNameToAdd){
+			controlNameToAdd.addClass('empty').val("").attr('placeholder','This name already exist');
 		};
+	
+	var scaleController = function(controlName,type){
+		var oldScale = $('#content-' + controlName).css('transform');
+		var newScale;
+		if(oldScale	 == "none"){
+			if(type == "up"){
+				newScale = 1.1;
+			}
+			else{
+				newScale = 0.9;
+			}
+		}
+		else{
+			oldScale = oldScale.split(","); 
+			oldScale = oldScale[0].split("\(");
+			if(type == "up"){
+				newScale = parseFloat(oldScale[1])+0.1;
+			}
+			else{
+				newScale = parseFloat(oldScale[1])-0.1;
+			}
+		}
+		$('#content-'+controlName).css('transform', 'scale('+newScale+')');
+	};
 	
 	return{
 	
@@ -115,8 +144,8 @@ var board = (function () {
 				event.preventDefault();
 				controlName = controlNameToAdd.val(),
 				controlPath = controlPathToAdd.val();
-				if (inputValidatation(controlName,"empty") == true && inputValidatation(controlPath,"empty") == true){
-					var nameExist = inputValidate(controlName,"nameExist");
+				if (inputValidation(controlName,"empty") == true && inputValidation(controlPath,"empty") == true){
+					var nameExist = inputValidation(controlName,"nameExist");
 					if(nameExist == true){
 						location.hash = "main-page";
 						
@@ -129,13 +158,25 @@ var board = (function () {
 						}
 					}
 					else{	// Algun nombre ya existe
-						inputNameExistMsg(controlName);
+						inputNameExistMsg(controlNameToAdd);
 					}
 				}
 				else{	//Algun input vacio
-					var inputsArray = [controlName,controlPath];
+					var inputsArray = [controlNameToAdd,controlPathToAdd];
 					emptyInputMsg(inputsArray);
 				}
+			});
+			
+			dashboard.on('click','#scale-up',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val();
+				scaleController(controlName,"up");
+			});
+			
+			dashboard.on('click','#scale-down',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val();
+				scaleController(controlName,"down");
 			});
 		},
 	};
@@ -143,8 +184,8 @@ var board = (function () {
 })();
 
 $(function() {
-	//board.init();
-
+	board.init();
+	board.buttonActions();
 });
 $(document).ready(function(){
 	$('#control-board').height($(window).height()-77+'px');
@@ -231,42 +272,10 @@ $(document).ready(function(){
 				}
 			});
 			
-		}
-		
-		
-		
+		}					
 	});
 	
-	$('#control-board').on('click','#scale-up',function(event){
-		event.preventDefault();
-		var oldScale = $('#content-'+controlNameToAdd).css('transform');
-		
-		if(oldScale	 == "none"){
-			newScale = 1.1;
-		}
-		else{
-			oldScale = oldScale.split(","); 
-			oldScale = oldScale[0].split("\(");
-			newScale = parseFloat(oldScale[1])+0.1;
-		}
-		$('#content-'+controlNameToAdd).css('transform', 'scale('+newScale+')')
-	});
 	
-	$('#control-board').on('click','#scale-down',function(event){
-		event.preventDefault();
-		var oldScale = $('#content-'+controlNameToAdd).css('transform');
-		if(oldScale	 == "none"){
-			newScale = 1.1;
-		}
-		else{
-			oldScale = oldScale.split(","); 
-			oldScale = oldScale[0].split("\(");
-			newScale = parseFloat(oldScale[1])-0.1;
-		}
-		$('#content-'+controlNameToAdd).css('transform', 'scale('+newScale+')')
-	});
-	
-	var editMode = false;
 	
 	$('#control-board').on('click','.arduino-action',function(event){
 		if(editMode == false){
