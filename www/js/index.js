@@ -1,250 +1,198 @@
-var app = {
-    // Application Constructor
-    initialize: function() {
-        this.bindEvents();
-    },
-    // Bind Event Listeners
-    //
-    // Bind any events that are required on startup. Common events are:
-    // 'load', 'deviceready', 'offline', and 'online'.
-    bindEvents: function() {
-        document.addEventListener('deviceready', this.onDeviceReady, false);
-    },
-    // deviceready Event Handler
-    //
-    // The scope of 'this' is the event. In order to call the 'receivedEvent'
-    // function, we must explicity call 'app.receivedEvent(...);'
-    onDeviceReady: function() {
-        app.receivedEvent('deviceready');
-    },
-    // Update DOM on a Received Event
-    receivedEvent: function(id) {
-	/*
-        var parentElement = document.getElementById(id);
-        var listeningElement = parentElement.querySelector('.listening');
-        var receivedElement = parentElement.querySelector('.received');
+// ControllerBoard functionality
+var board = (function () {
 
-        listeningElement.setAttribute('style', 'display:none;');
-        receivedElement.setAttribute('style', 'display:block;');
-
-        console.log('Received Event: ' + id);
-		*/
-		//alert('ok');
+	var dashboard = $('#control-board'),getContollerId
+		controllerNameText = $('#controller-name'),
+		controllerPathText = $('#controller-path'),
+		controlNameToAdd = $('#controller-name'),
+		controlPathToAdd = $('#controller-path'),
+		addControllerButton = $('#add-controller-board'),
+		saveButton = $('#save-controller'),
+		scaleUpButton = $('#scale-up'),
+		scaleDownButton = $('#scale-down'),
+		panelMenuButton = $('#button-panel'),
+		moveMsg = $('#move-msg'),
+		editControllerButton = $('#edit-controller-page');
 		
-    }
-};
-
-$(document).ready(function(){
-	$('#control-board').height($(window).height()-77+'px');
+	var editMode;
+	var controllerObjetId;
 	
-	dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
-	console.log('basede datos creda');
-    console.log("db was opened");
-    dbShell.transaction(setupTable,dbErrorHandler,getEntries);
-    console.log("ran setup");
+	var privateInit = function(){
+			editMode = false;
+			dashboard.height($(window).height()-77+'px');
+			/*
+			dbShell = window.openDatabase("controllers", 2, "SimpleNotes", 1000000);
+			dbShell.transaction(setupTable,dbErrorHandler,getEntries);	
+			*/
+		};
 	
-	
-	var controlNameToAdd;
-	var controllerNameText = $('#controller-name');
-	var controllerPathText = $('#controller-path');
-	
-	$('#add-controller-board').on('click',function(event){
-		event.preventDefault();
-		if (inputValidate(controllerNameText.val(),"empty") == true && inputValidate(controllerPathText.val(),"empty") == true){	
-			var nameExist = inputValidate(controllerNameText,"nameExist");
-			if(nameExist == true){
-				location.hash = "main-page";
-				var controlToAdd = $('input:radio[name=radio-choice-v-6]:checked').parent().find('.input-desc').html();
-				controlNameToAdd = $('#controller-name').val();
-				if(editMode == false){
-					
-					switch(controlToAdd){
-					case "Button":
-						controlHtml = '<a id="content-' + controlNameToAdd + '" data-path="' + $('#controller-path').val() + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlNameToAdd+'</a>';
-						$('#control-board').append(controlHtml);
+	var htmlToAddByControllerType = function(controllerType, controlName, controlPath){
+			
+			switch(controllerType){
+				case "Button":
+					controlHtml = '<a id="content-' + controlName + '" data-path="' + controlPath + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlName+'</a>';
+					$('#control-board').append(controlHtml);
 					break;
-					case "Flip switch":
-						controlHtml = '<div id="content-'+controlNameToAdd + '" class="controller-content arduino-action" data-path="'+$('#controller-path').val()+'"> <select id="flip-' + controlNameToAdd + '" name="flip-'+ controlNameToAdd +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlNameToAdd+'</div></div>';
-						$('#control-board').append(controlHtml);
-						$('#flip-' + controlNameToAdd).slider();
-						$('#content-' + controlNameToAdd).addClass('edit-enable');
+				case "Flip switch":
+					controlHtml = '<div id="content-'+controlName + '" class="controller-content arduino-action" data-path="'+ controlPath +'"> <select id="flip-' + controlName + '" name="flip-'+ controlName +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlName+'</div></div>';
+					$('#control-board').append(controlHtml);
+					$('#flip-' + controlName).slider();
+					$('#content-' + controlName).addClass('edit-enable');
 					break;
-					default:
-					  controlHtml = "<div>No control</div>";
-					}
-					$('#content-'+controlNameToAdd).pep({
-						useCSSTranslation: false,
-						constrainTo: 'parent'
-					}) 
-					$('#save-controller').addClass('show-controller').removeClass('hide-controller');
-					$('#scale-up').addClass('show-controller').removeClass('hide-controller');
-					$('#scale-down').addClass('show-controller').removeClass('hide-controller');
-					$('#button-panel').addClass('ui-state-disabled');
-					$('#move-msg').addClass('show-controller').removeClass('hide-controller');
-				}
-				else{ //edit mode
-					var editObjet = $('#control-board').find('.edit-enable');
-					editObjet.attr('id','content-'+controlNameToAdd);
-					editObjet.attr('data-path', $('#controller-path').val());
-					var titleController = $('#control-board').find('.edit-enable .text-center');
-					if(titleController != null){	//esto es para cambiar el titulo si es un flip switch
-						titleController.html(controlNameToAdd);
-					}
-					if(editObjet[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
-						editObjet.html(controlNameToAdd);
-					}
-					editObjet.removeClass('edit-enable');
-					editObjet.addClass('controller-editing');
-				}
+				default:
+					controlHtml = "<div>No control</div>";
+			}	
+		};
+	
+	var addNewController = function(){
+	
+		var controllerType = $('input:radio[name=radio-choice-v-6]:checked').parent().find('.input-desc').html(),
+			controlName = controlNameToAdd.val(),
+			controlPath = controlPathToAdd.val();
+			
+		htmlToAddByControllerType(controllerType, controlName, controlPath);
+		
+		$('#content-'+controlName).pep({
+			useCSSTranslation: false,
+			constrainTo: 'parent'
+		}) ;
+		showElement(saveButton);
+		showElement(scaleUpButton);
+		showElement(scaleDownButton);
+		panelMenuButton.addClass('ui-state-disabled');
+		showElement(moveMsg);
+		
+	};
+	
+	var editController = function(controllerToEdit, newControlName, newControlPath){
+			var controllerToEdit = $('#control-board').find('.edit-enable');
+			controllerToEdit.attr('id','content-'+newControlName);
+			controllerToEdit.attr('data-path', newControlPath);
+			var titleController = $('#control-board').find('.edit-enable .text-center');
+			if(titleController != null){	//esto es para cambiar el titulo si es un flip switch
+				titleController.html(newControlName);
 			}
-			else{	
-				controllerNameText.addClass('empty').val("").attr('placeholder','This name already exist');
+			if(controllerToEdit[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
+				controllerToEdit.html(newControlName);
+			}
+			controllerToEdit.removeClass('edit-enable');
+			controllerToEdit.addClass('controller-editing');
+		};
+	
+	var inputValidation = function (inputVal,type){
+		var result = true;
+		switch(type){
+			case "empty":
+				if(inputVal == ""){
+					result = false;
+				}
+			break;
+			case "nameExist":
+				$('#control-board > a, #control-board > div').each(function(){
+					if($(this).attr('id') == "content-"+inputVal){
+						result = false;
+					}
+				});
+			break;
+			default:
+				result = true;
+			}
+		return result;
+	};
+	
+	var emptyInputMsg = function(inputsArray){
+			inputsArray.forEach(function($this){
+				if($this.val() == ""){
+					$this.addClass('empty').attr('placeholder','This field is required ');
+				}
+			});
+		};
+	
+	var inputNameExistMsg = function(controlNameToAdd){
+			controlNameToAdd.addClass('empty').val("").attr('placeholder','This name already exist');
+		};
+	
+	var scaleController = function(controlName,type){
+		var oldScale = $('#content-' + controlName).css('transform');
+		var newScale;
+		if(oldScale	 == "none"){
+			if(type == "up"){
+				newScale = 1.1;
+			}
+			else{
+				newScale = 0.9;
 			}
 		}
 		else{
-			if(controllerNameText.val() == ""){
-				controllerNameText.addClass('empty').attr('placeholder','This field is required ');
+			oldScale = oldScale.split(","); 
+			oldScale = oldScale[0].split("\(");
+			if(type == "up"){
+				newScale = parseFloat(oldScale[1])+0.1;
 			}
-			if(controllerPathText.val() == ""){
-				controllerPathText.addClass('empty').attr('placeholder','This field is required');
+			else{
+				newScale = parseFloat(oldScale[1])-0.1;
 			}
 		}
-	});
+		$('#content-'+controlName).css('transform', 'scale('+newScale+')');
+	};
 	
-	//Borro el borde rojo(indicando requerido) cuando selecciono el campo
-	controllerNameText.focusin(function() {
-		controllerNameText.removeClass('empty');
-	});
+	var emptyAddControllerInputs = function(){
+		controlNameToAdd.val("");
+		controlPathToAdd.val("");
+	};
 	
-	controllerPathText.focusin(function() {
-		controllerPathText.removeClass('empty');
-	});
-	
-	$('#save-controller').on('click',function(event){
-		event.preventDefault();
-		if(editMode == false){
-			var controlSettings = {
-				type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
-				name: $('#controller-name').val(),
-				path: $('#controller-path').val(),
-				css: $('#content-'+controlNameToAdd).attr('style'),
-				id: ""
-			};
+	var safeNewController = function(controlSettings){
+			emptyAddControllerInputs();		
+			hideElement(scaleUpButton);
+			hideElement(scaleDownButton);
+			panelMenuButton.removeClass('ui-state-disabled');
+			$('#content-' + controlSettings.name).removeClass('edit-enable');
+			hideElement(moveMsg);
+					
 			$.pep.toggleAll(false);
-			$('#save-controller').removeClass('show-controller').addClass('hide-controller');
-			$('#scale-up').removeClass('show-controller').addClass('hide-controller');
-			$('#scale-down').removeClass('show-controller').addClass('hide-controller');
-			$('#controller-name').val("");
-			$('#controller-path').val("");
-			$('#button-panel').removeClass('ui-state-disabled');
-			$('#content-' + controlNameToAdd).removeClass('edit-enable');
-			$('#move-msg').removeClass('show-controller').addClass('hide-controller');
-			
+			/*
 			// Safe new added controller data
 			saveController(controlSettings,function() {
-				console.log('guardado exitoso');
+			console.log('guardado exitoso');
 			});
-		}
-		else{	// edit mode
-			editMode = false;
-			$('#save-controller').removeClass('show-controller').addClass('hide-controller');
-			$('#button-panel').removeClass('ui-state-disabled');
-			$('.open-delete-popup').remove();
-			
-			
-			
+			*/		
+	};
+	
+	var safeEdition = function(){
 			$('#control-board > a, #control-board > div').each(function(){	
 				var contName = $(this).attr('id');
-			
 				if(contName != undefined || contName != null){
 					contName = contName.split("-");
 					if(contName[0] == "content"){
 						if($(this).hasClass('controller-editing')){
 							var controllerId = getContollerId($(this).attr('id'),function(result) {
-								console.log('ID success');
 								var controlSettings = {
-									type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
-									name: $('#controller-name').val(),
-									path: $('#controller-path').val(),
-									css: $('#content-'+controlNameToAdd).attr('style'),
-									id: controllerId
-								};
-							});
+										type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
+										name: $('#controller-name').val(),
+										path: $('#controller-path').val(),
+										css: $('#content-'+controlNameToAdd).attr('style'),
+										id: controllerId
+									};
+								});
 							$(this).removeClass('controller-editing');
 						}
-						
 						$(this).removeAttr('data-rel').removeAttr('data-rel').removeAttr('data-rel').removeAttr('href');
 						$(this).removeClass('edit-enable');
 						$(this).next().remove();
 					}
 				}
 			});
-			
-		}
-		
-		
-		
-	});
+		};
 	
-	$('#control-board').on('click','#scale-up',function(event){
-		event.preventDefault();
-		var oldScale = $('#content-'+controlNameToAdd).css('transform');
+	var showElement = function(element){
+		element.addClass('show-controller').removeClass('hide-controller');
+	};
+	
+	var hideElement = function(element){
+		element.removeClass('show-controller').addClass('hide-controller');
+	};
 		
-		if(oldScale	 == "none"){
-			newScale = 1.1;
-		}
-		else{
-			oldScale = oldScale.split(","); 
-			oldScale = oldScale[0].split("\(");
-			newScale = parseFloat(oldScale[1])+0.1;
-		}
-		$('#content-'+controlNameToAdd).css('transform', 'scale('+newScale+')')
-	});
-	
-	$('#control-board').on('click','#scale-down',function(event){
-		event.preventDefault();
-		var oldScale = $('#content-'+controlNameToAdd).css('transform');
-		if(oldScale	 == "none"){
-			newScale = 1.1;
-		}
-		else{
-			oldScale = oldScale.split(","); 
-			oldScale = oldScale[0].split("\(");
-			newScale = parseFloat(oldScale[1])-0.1;
-		}
-		$('#content-'+controlNameToAdd).css('transform', 'scale('+newScale+')')
-	});
-	
-	var editMode = false;
-	
-	$('#control-board').on('click','.arduino-action',function(event){
-		if(editMode == false){
-			getData("","","");
-		}
-		else{
-			event.preventDefault();
-			
-			var popupMenuEdit = $('#popupMenuEdit');
-			popupMenuEdit.popup( "open");
-			if($(this)[0].tagName != "DIV"){
-				$('#open-delete-popup').attr('data-cont-delete',$(this).attr('id'));
-				$(this).addClass('edit-enable');
-			}
-			else{
-				$('#open-delete-popup').attr('data-cont-delete',$(this).prev().attr('id'));
-				$(this).prev().addClass('edit-enable');
-			}
-		}
-	});
-	
-	$('#edit-controller-page').on('click',function(event){
-		editMode = true;
-		event.preventDefault();
-		location.hash = "main-page";
-		$('#button-panel').addClass('ui-state-disabled');
-		$('#save-controller').addClass('show-controller').removeClass('hide-controller');
-		$( "#menu-panel" ).panel( "close" );
-		
+	var prepareControllersToBeEdit = function(){
 		$('#control-board > a, #control-board > div').each(function(){		
 			var contName = $(this).attr('id');
 			contName = contName.split("-");
@@ -261,83 +209,174 @@ $(document).ready(function(){
 				$(supDiv).insertAfter($(this));
 			}
 		});
+	};
+	return{
+	
+		init: privateInit,
 		
-	});
-	
-	var controllerObjetId;
-	//Boton delete del menu de edicion
-	$('#open-delete-popup').click(function(event){
-		event.preventDefault();
-		var popupMenuEdit = $('#popupMenuEdit')
-		popupMenuEdit.popup( "close");
-		popupMenuEdit.popup({
-			afterclose: function( event, ui ) {
-				$( "#deleteDialog" ).popup( "open");
-			}
-		});
-		controllerObjetId = $(this).attr('data-cont-delete');
-		console.log('ASDAS');
-	});
-	
-	//Delete controller
-	$('#delete-controller-button').click(function(event){
-		event.preventDefault();
-		$('#'+controllerObjetId).remove();
-		$('#deleteDialog').popup( "close" );
-		
-		getContollerIdandDelete(controllerObjetId,function() {
-			console.log('delete success');
-        });
-		
-	});
-	
-	//Delete controller
-	$('#delete-cancel-button').click(function(event){
-		event.preventDefault();
-		$('#deleteDialog').popup( "close" );
-		$('#control-board').find('.edit-enable').removeClass('edit-enable');
-		
-	});
-	
-	//boton cerrar menu edicion
-	$('#close-button-menu-edit').click(function(event){
-		$('#popupMenuEdit').popup({
-			afterclose: function( event, ui ) {
-				$( "#deleteDialog" ).popup( "close");
-			}
-		});
-		$('#control-board').find('.edit-enable').removeClass('edit-enable');
-	});
-	
-	
-	$('#open-edit-page').on('click',function(event){
-		//editMode = true;
-		event.preventDefault();
-		location.hash = "#output-path-page";
-		var editObjetName = $('#control-board').find('.edit-enable').attr('id');
-		editObjetName = editObjetName.split("-");
-		var editObjetPath = $('#control-board').find('.edit-enable').attr('data-path');
-		
-		$('#controller-name').val(editObjetName[1]);
-		$('#controller-path').val(editObjetPath);
-	});
-	function inputValidate(inputVal,type){
-		var result = true;
-		switch(type){
-			case "empty":
-				if(inputVal != ""){result = true;}else{result = false;}
-			break;
-			case "nameExist":
-				$('#control-board > a, #control-board > div').each(function(){
-					if($(this).attr('id') == "content-"+inputVal.val()){
-						result = false;
+		buttonActions : function(){
+			addControllerButton.on('click',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val(),
+				controlPath = controlPathToAdd.val();
+				if (inputValidation(controlName,"empty") == true && inputValidation(controlPath,"empty") == true){
+					var nameExist = inputValidation(controlName,"nameExist");
+					if(nameExist == true){
+						location.hash = "main-page";
+						
+						if(editMode == false){
+							addNewController();
+						}
+						else{
+							var controllerToEdit = dashboard.find('.edit-enable');
+							editController(controllerToEdit, controlName, controlPath);
+						}
+					}
+					else{	// Algun nombre ya existe
+						inputNameExistMsg(controlNameToAdd);
+					}
+				}
+				else{	//Algun input vacio
+					var inputsArray = [controlNameToAdd,controlPathToAdd];
+					emptyInputMsg(inputsArray);
+				}
+			});
+			
+			dashboard.on('click','#scale-up',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val();
+				scaleController(controlName,"up");
+			});
+			
+			dashboard.on('click','#scale-down',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val();
+				scaleController(controlName,"down");
+			});
+			
+			saveButton.on('click',function(event){
+				event.preventDefault();
+				hideElement(saveButton);
+				if(editMode == false){
+					var controlSettings = {
+						type: $('input:radio[name=radio-choice-v-6]:checked').val(), 
+						name: controlNameToAdd.val(),
+						path: controlPathToAdd.val(),
+						css: $('#content-'+controlNameToAdd.val()).attr('style'),
+						id: ""
+					};
+					safeNewController(controlSettings);	
+				}
+				else{
+					editMode = false;
+					panelMenuButton.removeClass('ui-state-disabled');
+					$('.open-delete-popup').remove();
+					safeEdition();
+					
+				}
+			});
+			
+			//Borro el borde rojo(indicando requerido) cuando selecciono el campo
+			controllerNameText.focusin(function() {
+				controllerNameText.removeClass('empty');
+			});
+			
+			controllerPathText.focusin(function() {
+				controllerPathText.removeClass('empty');
+			});
+			
+			dashboard.on('click','.arduino-action',function(event){
+				if(editMode == false){
+					getData("","","");
+				}
+				else{
+					event.preventDefault();
+					var popupMenuEdit = $('#popupMenuEdit');
+					popupMenuEdit.popup( "open");
+					if($(this)[0].tagName != "DIV"){
+						$('#open-delete-popup').attr('data-cont-delete',$(this).attr('id'));
+						$(this).addClass('edit-enable');
+					}
+					else{
+						$('#open-delete-popup').attr('data-cont-delete',$(this).prev().attr('id'));
+						$(this).prev().addClass('edit-enable');
+					}
+				}
+			});
+			
+			editControllerButton.on('click',function(event){
+				editMode = true;
+				event.preventDefault();
+				location.hash = "main-page";
+				panelMenuButton.addClass('ui-state-disabled');
+				showElement(saveButton);
+				$( "#menu-panel" ).panel( "close" );
+				
+				prepareControllersToBeEdit();
+			});
+			
+			
+			//Boton delete del menu de edicion
+			$('#open-delete-popup').click(function(event){
+				event.preventDefault();
+				var popupMenuEdit = $('#popupMenuEdit')
+				popupMenuEdit.popup( "close");
+				popupMenuEdit.popup({
+					afterclose: function( event, ui ) {
+						$( "#deleteDialog" ).popup( "open");
 					}
 				});
-			break;
-			default:
-				result = true;
-			}
-		return result;
-	}
-});
+				controllerObjetId = $(this).attr('data-cont-delete');
+				
+			});
+			
+			//Delete controller (boton delete)
+			$('#delete-controller-button').click(function(event){
+				event.preventDefault();
+				$('#'+controllerObjetId).remove();
+				$('#deleteDialog').popup( "close" );
+				
+				getContollerIdandDelete(controllerObjetId,function() {
+					console.log('delete success');
+				});
+				
+			});
+			
+			//Delete controller (boton cancel)
+			$('#delete-cancel-button').click(function(event){
+				event.preventDefault();
+				$('#deleteDialog').popup( "close" );
+				$('#control-board').find('.edit-enable').removeClass('edit-enable');
+				
+			});
+			
+			//boton cerrar menu edicion
+			$('#close-button-menu-edit').click(function(event){
+				$('#popupMenuEdit').popup({
+					afterclose: function( event, ui ) {
+						$( "#deleteDialog" ).popup( "close");
+					}
+				});
+				$('#control-board').find('.edit-enable').removeClass('edit-enable');
+			});
+			
+			$('#open-edit-page').on('click',function(event){
+				//editMode = true;
+				event.preventDefault();
+				location.hash = "#output-path-page";
+				var editObjetName = $('#control-board').find('.edit-enable').attr('id');
+				editObjetName = editObjetName.split("-");
+				var editObjetPath = $('#control-board').find('.edit-enable').attr('data-path');
+				
+				$('#controller-name').val(editObjetName[1]);
+				$('#controller-path').val(editObjetPath);
+			});
+		},
+	};
+	
+})();
 
+$(function() {
+	board.init();
+	board.buttonActions();
+});
