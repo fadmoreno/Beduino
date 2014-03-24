@@ -1,39 +1,3 @@
-var app = {
-    // Application Constructor
-    initialize: function() {
-        this.bindEvents();
-    },
-    // Bind Event Listeners
-    //
-    // Bind any events that are required on startup. Common events are:
-    // 'load', 'deviceready', 'offline', and 'online'.
-    bindEvents: function() {
-        document.addEventListener('deviceready', this.onDeviceReady, false);
-    },
-    // deviceready Event Handler
-    //
-    // The scope of 'this' is the event. In order to call the 'receivedEvent'
-    // function, we must explicity call 'app.receivedEvent(...);'
-    onDeviceReady: function() {
-        app.receivedEvent('deviceready');
-    },
-    // Update DOM on a Received Event
-    receivedEvent: function(id) {
-	/*
-        var parentElement = document.getElementById(id);
-        var listeningElement = parentElement.querySelector('.listening');
-        var receivedElement = parentElement.querySelector('.received');
-
-        listeningElement.setAttribute('style', 'display:none;');
-        receivedElement.setAttribute('style', 'display:block;');
-
-        console.log('Received Event: ' + id);
-		*/
-		//alert('ok');
-		
-    }
-};
-
 // ControllerBoard functionality
 var board = (function () {
 
@@ -41,7 +5,13 @@ var board = (function () {
 		controllerNameText = $('#controller-name'),
 		controllerPathText = $('#controller-path'),
 		controlNameToAdd = $('#controller-name'),
-		controlPathToAdd = $('#controller-path');
+		controlPathToAdd = $('#controller-path'),
+		addControllerButton = $('#add-controller-board'),
+		saveButton = $('#save-controller'),
+		scaleUpButton = $('#scale-up'),
+		scaleDownButton = $('#scale-down'),
+		panelMenuButton = $('#button-panel'),
+		moveMsg = $('#move-msg');
 		
 	var privateInit = function(){
 			dashboard.height($(window).height()-77+'px');
@@ -66,28 +36,40 @@ var board = (function () {
 					controlHtml = "<div>No control</div>";
 			}	
 		};
-
+	
 	var addNewController = function(){
 	
 		var controllerType = $('input:radio[name=radio-choice-v-6]:checked').parent().find('.input-desc').html(),
 			controlName = controlNameToAdd.val(),
 			controlPath = controlPathToAdd.val();
+			
 		htmlToAddByControllerType(controllerType, controlName, controlPath);
+		
+		$('#content-'+controlName).pep({
+			useCSSTranslation: false,
+			constrainTo: 'parent'
+		}) ;
+		
+		saveButton.addClass('show-controller').removeClass('hide-controller');
+		scaleUpButton.addClass('show-controller').removeClass('hide-controller');
+		scaleDownButton.addClass('show-controller').removeClass('hide-controller');
+		panelMenuButton.addClass('ui-state-disabled');
+		moveMsg.addClass('show-controller').removeClass('hide-controller');
 	};
 	
-	var editController = function(){
-			var editObjet = $('#control-board').find('.edit-enable');
-			editObjet.attr('id','content-'+controlNameToAdd);
-			editObjet.attr('data-path', $('#controller-path').val());
+	var editController = function(controllerToEdit, newControlName, newControlPath){
+			var controllerToEdit = $('#control-board').find('.edit-enable');
+			controllerToEdit.attr('id','content-'+newControlName);
+			controllerToEdit.attr('data-path', newControlPath);
 			var titleController = $('#control-board').find('.edit-enable .text-center');
 			if(titleController != null){	//esto es para cambiar el titulo si es un flip switch
-				titleController.html(controlNameToAdd);
+				titleController.html(newControlName);
 			}
-			if(editObjet[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
-				editObjet.html(controlNameToAdd);
+			if(controllerToEdit[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
+				controllerToEdit.html(newControlName);
 			}
-			editObjet.removeClass('edit-enable');
-			editObjet.addClass('controller-editing');
+			controllerToEdit.removeClass('edit-enable');
+			controllerToEdit.addClass('controller-editing');
 		};
 	
 	var inputValidatation = function (inputVal,type){
@@ -109,14 +91,52 @@ var board = (function () {
 				result = true;
 			}
 		return result;
-	}
+	};
+	
+	var emptyInputMsg = function(inputsArray){
+			inputsArray.each(function(){
+				$this = $(this);
+				if($this.val() == ""){
+					$this.addClass('empty').attr('placeholder','This field is required ');
+				}
+			});
+		};
+	
+	var inputNameExistMsg = function(controlName){
+			controlName.addClass('empty').val("").attr('placeholder','This name already exist');
+		};
 	
 	return{
 	
 		init: privateInit,
 		
-		addController : function(){
-		
+		buttonActions : function(){
+			addControllerButton.on('click',function(event){
+				event.preventDefault();
+				controlName = controlNameToAdd.val(),
+				controlPath = controlPathToAdd.val();
+				if (inputValidatation(controlName,"empty") == true && inputValidatation(controlPath,"empty") == true){
+					var nameExist = inputValidate(controlName,"nameExist");
+					if(nameExist == true){
+						location.hash = "main-page";
+						
+						if(editMode == false){
+							addNewController();
+						}
+						else{
+							var controllerToEdit = dashboard.find('.edit-enable');
+							editController(controllerToEdit, controlName, controlPath);
+						}
+					}
+					else{	// Algun nombre ya existe
+						inputNameExistMsg(controlName);
+					}
+				}
+				else{	//Algun input vacio
+					var inputsArray = [controlName,controlPath];
+					emptyInputMsg(inputsArray);
+				}
+			});
 		},
 	};
 	
@@ -140,68 +160,6 @@ $(document).ready(function(){
 	var controllerNameText = $('#controller-name');
 	var controllerPathText = $('#controller-path');
 	
-	$('#add-controller-board').on('click',function(event){
-		event.preventDefault();
-		if (inputValidate(controllerNameText.val(),"empty") == true && inputValidate(controllerPathText.val(),"empty") == true){	
-			var nameExist = inputValidate(controllerNameText,"nameExist");
-			if(nameExist == true){
-				location.hash = "main-page";
-				var controlToAdd = $('input:radio[name=radio-choice-v-6]:checked').parent().find('.input-desc').html();
-				controlNameToAdd = $('#controller-name').val();
-				if(editMode == false){
-					
-					switch(controlToAdd){
-						case "Button":
-							controlHtml = '<a id="content-' + controlNameToAdd + '" data-path="' + $('#controller-path').val() + '" class="ui-btn ui-btn-inline ui-icon-power ui-btn-icon-left ui-shadow ui-corner-all arduino-action edit-enable">'+controlNameToAdd+'</a>';
-							$('#control-board').append(controlHtml);
-						break;
-						case "Flip switch":
-							controlHtml = '<div id="content-'+controlNameToAdd + '" class="controller-content arduino-action" data-path="'+$('#controller-path').val()+'"> <select id="flip-' + controlNameToAdd + '" name="flip-'+ controlNameToAdd +'" data-role="slider"><option value="off">Off</option><option value="on">On</option></select><div class="text-center">'+controlNameToAdd+'</div></div>';
-							$('#control-board').append(controlHtml);
-							$('#flip-' + controlNameToAdd).slider();
-							$('#content-' + controlNameToAdd).addClass('edit-enable');
-						break;
-						default:
-							controlHtml = "<div>No control</div>";
-					}
-					$('#content-'+controlNameToAdd).pep({
-						useCSSTranslation: false,
-						constrainTo: 'parent'
-					}) 
-					$('#save-controller').addClass('show-controller').removeClass('hide-controller');
-					$('#scale-up').addClass('show-controller').removeClass('hide-controller');
-					$('#scale-down').addClass('show-controller').removeClass('hide-controller');
-					$('#button-panel').addClass('ui-state-disabled');
-					$('#move-msg').addClass('show-controller').removeClass('hide-controller');
-				}
-				else{ //edit mode
-					var editObjet = $('#control-board').find('.edit-enable');
-					editObjet.attr('id','content-'+controlNameToAdd);
-					editObjet.attr('data-path', $('#controller-path').val());
-					var titleController = $('#control-board').find('.edit-enable .text-center');
-					if(titleController != null){	//esto es para cambiar el titulo si es un flip switch
-						titleController.html(controlNameToAdd);
-					}
-					if(editObjet[0].tagName == "A"){ // si es un boton (etiqueta anchor en realidad)
-						editObjet.html(controlNameToAdd);
-					}
-					editObjet.removeClass('edit-enable');
-					editObjet.addClass('controller-editing');
-				}
-			}
-			else{	
-				controllerNameText.addClass('empty').val("").attr('placeholder','This name already exist');
-			}
-		}
-		else{
-			if(controllerNameText.val() == ""){
-				controllerNameText.addClass('empty').attr('placeholder','This field is required ');
-			}
-			if(controllerPathText.val() == ""){
-				controllerPathText.addClass('empty').attr('placeholder','This field is required');
-			}
-		}
-	});
 	
 	//Borro el borde rojo(indicando requerido) cuando selecciono el campo
 	controllerNameText.focusin(function() {
