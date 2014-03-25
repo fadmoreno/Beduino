@@ -333,6 +333,7 @@ var board = (function () {
 			//Delete controller (boton delete)
 			$('#delete-controller-button').click(function(event){
 				event.preventDefault();
+				$('#'+controllerObjetId).next().remove();
 				$('#'+controllerObjetId).remove();
 				$('#deleteDialog').popup( "close" );
 				
